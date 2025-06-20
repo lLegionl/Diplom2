@@ -197,6 +197,36 @@ try {
     </div>
 
     <script>
+        // Обработчик выхода (универсальный для всех страниц)
+        function handleLogout() {
+            fetch('auth.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=logout'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'index.php'; // Перенаправляем на главную
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при выходе:', error);
+            });
+        }
+
+        // Назначаем обработчик на кнопку выхода
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    handleLogout();
+                });
+            }
+        });
         // Элементы DOM
         const applyBtn = document.getElementById('apply-btn');
         const applyModal = document.getElementById('apply-modal');

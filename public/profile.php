@@ -26,7 +26,7 @@ if (!$user) {
     // Получаем отклики пользователя с информацией о вакансиях
     $responsesStmt = $pdo->prepare("
         SELECT r.id, r.date_response, r.status, 
-            j.profession, j.company_id, j.location, j.created_at
+            j.profession, j.location, j.created_at
         FROM response r
         JOIN job j ON r.id_job = j.id
         WHERE r.id_user = ?
@@ -203,19 +203,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script>
         // Обработка выхода
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            fetch('index.php', {
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            fetch('auth.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: 'action=logout'
             })
-            .then(() => {
-                window.location.href = 'index.php';
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'index.php';
+                }
             });
-        });
-        
+        });        
         // Обработка формы профиля
         document.getElementById('profile-form').addEventListener('submit', (e) => {
             e.preventDefault();

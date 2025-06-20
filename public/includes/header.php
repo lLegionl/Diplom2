@@ -55,7 +55,7 @@
                         <i class="fas fa-user"></i>
                         <span><?= htmlspecialchars($_SESSION['user_name']) ?></span>
                     </a>
-                    <button class="logout-btn" id="logout-btn">Выйти</button>
+                    <button id="logout-btn" class="logout-btn">Выйти</button>
                 </div>
             <?php else: ?>
                 <div class="auth-buttons">

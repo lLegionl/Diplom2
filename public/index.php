@@ -50,52 +50,6 @@ include 'auth.php';
             <h3>Напишите телефон, чтобы работодатели могли предложить вам работу</h3>
             <input type="tel" placeholder="+7 (___) ___-____">
         </div>
-        
-        <!-- Личный кабинет (скрыт по умолчанию) -->
-        <section class="dashboard" id="dashboard">
-            <div class="profile-header">
-                <div class="profile-pic" id="user-avatar">ИИ</div>
-                <div class="profile-info">
-                    <h2 id="user-name">Иван Иванов</h2>
-                    <p id="user-email">ivan@example.com</p>
-                </div>
-            </div>
-            
-            <div class="dashboard-content">
-                <div class="dashboard-section">
-                    <h3>Рекомендованные вакансии</h3>
-                    <div class="vacancy-item">
-                        <h4>Frontend разработчик (React)</h4>
-                        <p>ООО "Технологии будущего" · Москва · Опыт от 3 лет</p>
-                        <p class="salary">150 000 - 220 000 ₽</p>
-                    </div>
-                    <div class="vacancy-item">
-                        <h4>Менеджер по продажам</h4>
-                        <p>ПАО "Сбербанк" · Санкт-Петербург · Опыт от 1 года</p>
-                        <p class="salary">90 000 - 120 000 ₽ + бонусы</p>
-                    </div>
-                    <div class="vacancy-item">
-                        <h4>UX/UI дизайнер</h4>
-                        <p>Яндекс · Удалённо · Опыт от 2 лет</p>
-                        <p class="salary">140 000 - 180 000 ₽</p>
-                    </div>
-                </div>
-                
-                <div class="dashboard-section">
-                    <h3>Ваши отклики</h3>
-                    <div class="vacancy-item">
-                        <h4>Маркетолог</h4>
-                        <p>ООО "МаркетПром" · Москва · Отправлено 12.05.2023</p>
-                        <p>Статус: <span style="color: #23a6d5;">Рассматривается</span></p>
-                    </div>
-                    <div class="vacancy-item">
-                        <h4>Аналитик данных</h4>
-                        <p>Тинькофф · Москва · Отправлено 05.05.2023</p>
-                        <p>Статус: <span style="color: #23d5ab;">Приглашение на собеседование</span></p>
-                    </div>
-                </div>
-            </div>
-        </section>
     </main>
     
     <?php include 'includes/footer.php'; ?>
@@ -157,6 +111,36 @@ include 'auth.php';
     </div>
     
     <script>
+        // Обработчик выхода (универсальный для всех страниц)
+        function handleLogout() {
+            fetch('auth.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=logout'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'index.php'; // Перенаправляем на главную
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при выходе:', error);
+            });
+        }
+
+        // Назначаем обработчик на кнопку выхода
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    handleLogout();
+                });
+            }
+        });
         // Элементы DOM
         const loginBtn = document.getElementById('login-btn');
         const registerBtn = document.getElementById('register-btn');
@@ -201,9 +185,8 @@ include 'auth.php';
         }
         
         
-        // Функция выхода
         function logout() {
-            fetch('index.php', {
+            fetch('auth.php', {  // Изменено с index.php на auth.php
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -213,22 +196,10 @@ include 'auth.php';
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    dashboard.style.display = 'none';
-                    document.querySelector('.auth-buttons').innerHTML = `
-                        <button class="login" id="login-btn">Войти</button>
-                        <button class="register" id="register-btn">Регистрация</button>
-                    `;
-                    // Перепривязываем события
-                    document.getElementById('login-btn').addEventListener('click', () => {
-                        loginModal.style.display = 'flex';
-                    });
-                    document.getElementById('register-btn').addEventListener('click', () => {
-                        registerModal.style.display = 'flex';
-                    });
+                    window.location.reload();  // Просто перезагружаем страницу
                 }
             });
-        }
-        
+        }        
         // Показать модальное окно входа
         loginBtn.addEventListener('click', () => {
             loginModal.style.display = 'flex';
@@ -294,8 +265,8 @@ include 'auth.php';
                 }
             })
             .catch(error => {
+                window.location.reload();
                 console.error('Error:', error);
-                alert('Произошла ошибка при авторизации');
             });
         });
         
@@ -331,8 +302,8 @@ include 'auth.php';
                 }
             })
             .catch(error => {
+                window.location.reload();
                 console.error('Error:', error);
-                alert('Произошла ошибка при регистрации');
             });
         });
         

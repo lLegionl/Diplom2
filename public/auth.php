@@ -1,28 +1,6 @@
-<?
-function refreshPage($delay = 0) {
-    // Проверяем, не были ли уже отправлены заголовки
-    if (!headers_sent()) {
-        // Если указана задержка, используем JavaScript для обновления
-        if ($delay > 0) {
-            echo "<script>
-                setTimeout(function() {
-                    window.location.reload();
-                }, " . ($delay * 1000) . ");
-            </script>";
-        } else {
-            // Немедленное обновление через PHP
-            header("Refresh:0");
-        }
-    } else {
-        // Если заголовки уже отправлены, используем JavaScript
-        echo "<script>window.location.reload();</script>";
-    }
-    exit; // Завершаем выполнение скрипта
-}
-
-
+<? 
+session_start();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    refreshPage(2);
     header('Content-Type: application/json');
     
     if (isset($_POST['action'])) {
@@ -114,12 +92,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]]);
                 exit;
 
-            case 'logout':
-                session_unset();
-                session_destroy();
-                echo json_encode(['success' => true, 'message' => 'Вы успешно вышли из системы']);
-                exit;
-
+                case 'logout':
+                    // Уничтожаем сессию полностью
+                    $_SESSION = array();
+                    if (ini_get("session.use_cookies")) {
+                        $params = session_get_cookie_params();
+                        setcookie(session_name(), '', time() - 42000,
+                            $params["path"], $params["domain"],
+                            $params["secure"], $params["httponly"]
+                        );
+                    }
+                    session_destroy();
+                    echo json_encode(['success' => true, 'message' => 'Вы успешно вышли из системы']);
+                    exit;
             case 'check':
                 if (isset($_SESSION['user_id'])) {
                     echo json_encode(['success' => true, 'message' => 'Пользователь авторизован', 'data' => [

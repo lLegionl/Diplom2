@@ -114,6 +114,37 @@ $vacancies = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
     
     <script>
+        // Обработчик выхода (универсальный для всех страниц)
+        function handleLogout() {
+            fetch('auth.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=logout'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = 'index.php'; // Перенаправляем на главную
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при выходе:', error);
+            });
+        }
+
+        // Назначаем обработчик на кнопку выхода
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    handleLogout();
+                });
+            }
+        });
+
         // Элементы DOM
         const loginBtn = document.getElementById('login-btn');
         const registerBtn = document.getElementById('register-btn');
@@ -172,10 +203,27 @@ $vacancies = $stmt->fetchAll(PDO::FETCH_ASSOC);
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             
-            // Здесь должна быть проверка данных на сервере
-            // Для демонстрации просто закроем модальное окно
-            loginModal.style.display = 'none';
-            alert('Вход выполнен успешно!');
+            fetch('index.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loginModal.style.display = 'none';
+                    updateUserProfile(data.data);
+                    showDashboard();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                window.location.reload();
+                console.error('Error:', error);
+            });
         });
         
         // Обработка формы регистрации
@@ -183,6 +231,7 @@ $vacancies = $stmt->fetchAll(PDO::FETCH_ASSOC);
             e.preventDefault();
             const name = document.getElementById('register-name').value;
             const email = document.getElementById('register-email').value;
+            const phone = document.getElementById('register-phone').value;
             const password = document.getElementById('register-password').value;
             const confirm = document.getElementById('register-confirm').value;
             
@@ -191,9 +240,27 @@ $vacancies = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 return;
             }
             
-            // Здесь должна быть отправка данных на сервер
-            registerModal.style.display = 'none';
-            alert('Регистрация прошла успешно!');
+            fetch('index.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=register&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&password=${encodeURIComponent(password)}&confirm=${encodeURIComponent(confirm)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    registerModal.style.display = 'none';
+                    updateUserProfile(data.data);
+                    showDashboard();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                window.location.reload();
+                console.error('Error:', error);
+            });
         });
         
         // Обработчики для навигации
