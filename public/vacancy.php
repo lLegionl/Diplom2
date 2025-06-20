@@ -1,3 +1,59 @@
+<?php
+require_once 'db.php';
+include 'config.php';
+
+requireLogin();
+
+if (!isset($_GET['id'])) {
+    header('Location: vacancies.php');
+    exit();
+}
+
+$vacancyId = (int)$_GET['id'];
+
+// Получаем данные о вакансии
+$stmt = $pdo->prepare("SELECT * FROM job WHERE id = :id");
+$stmt->execute(['id' => $vacancyId]);
+$vacancy = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$vacancy) {
+    header('Location: vacancies.php');
+    exit();
+}
+
+// Получаем похожие вакансии
+$stmt = $pdo->prepare("SELECT * FROM job WHERE id != :id ORDER BY RAND() LIMIT 3");
+$stmt->execute(['id' => $vacancyId]);
+$similarVacancies = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Обработка формы отклика
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply'])) {
+    session_start();
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
+        exit();
+    }
+    
+    $userId = $_SESSION['user_id'];
+    $jobId = $vacancyId;
+    
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO response (id_user, id_job, status, date_response)
+            VALUES (:user_id, :job_id, 1, 'Отклик')
+        ");
+        $stmt->execute([
+            'user_id' => $userId,
+            'job_id' => $jobId
+        ]);
+        
+        header('Location: vacancy.php?id=' . $jobId . '&applied=1');
+        exit();
+    } catch (PDOException $e) {
+        $error = "Ошибка при отправке отклика: " . $e->getMessage();
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -14,10 +70,15 @@
         }
         
         body {
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
             color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: #dde1e6;
+            background-image: radial-gradient(#989ea5 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #333;
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
@@ -470,29 +531,32 @@
             <button class="register" id="register-btn">Регистрация</button>
         </div>
     </header>
-    
     <main>
         <section class="vacancy-container">
             <div class="vacancy-header">
-                <h1 class="vacancy-title">Frontend разработчик (React)</h1>
-                <p class="vacancy-company">ООО "Технологии будущего"</p>
+                <h1 class="vacancy-title"><?= htmlspecialchars($vacancy['profession']) ?></h1>
                 
                 <div class="vacancy-meta">
                     <div class="meta-item">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span>Москва · Удалённо</span>
+                        <span><?= htmlspecialchars($vacancy['location']) ?><?= $vacancy['remote_available'] ? ' · Удалённо' : '' ?></span>
                     </div>
                     <div class="meta-item">
                         <i class="fas fa-briefcase"></i>
-                        <span>Опыт от 3 лет</span>
+                        <span><?= htmlspecialchars($vacancy['experience']) ?></span>
                     </div>
                     <div class="meta-item">
                         <i class="fas fa-clock"></i>
-                        <span>Полный день</span>
+                        <span><?= htmlspecialchars($vacancy['employment_type']) ?></span>
                     </div>
                 </div>
                 
-                <p class="vacancy-salary">150 000 - 220 000 ₽</p>
+                <p class="vacancy-salary">
+                    <?= $vacancy['salary_from'] ? number_format($vacancy['salary_from'], 0, '', ' ') : '' ?>
+                    <?= $vacancy['salary_from'] && $vacancy['salary_to'] ? ' - ' : '' ?>
+                    <?= $vacancy['salary_to'] ? number_format($vacancy['salary_to'], 0, '', ' ') : '' ?>
+                    <?= ($vacancy['salary_from'] || $vacancy['salary_to']) ? $vacancy['salary_currency'] : 'Зарплата не указана' ?>
+                </p>
                 
                 <button class="apply-btn" id="apply-btn">Откликнуться</button>
             </div>
@@ -500,84 +564,30 @@
             <div class="vacancy-content">
                 <h3 class="section-title">Описание вакансии</h3>
                 <div class="vacancy-description">
-                    <p>Мы ищем опытного Frontend разработчика с глубокими знаниями React.js для работы над нашим флагманским продуктом. Вам предстоит разрабатывать новые функции, оптимизировать производительность и работать в тесной связке с UX/UI дизайнерами.</p>
-                    <p>Наш продукт - это высоконагруженное веб-приложение для автоматизации бизнес-процессов, которым пользуются тысячи компаний по всему миру. Мы используем современный стек технологий и следуем лучшим практикам разработки.</p>
-                </div>
-                
-                <h3 class="section-title">Требования</h3>
-                <ul class="requirements-list">
-                    <li>Опыт коммерческой разработки на React.js от 3 лет</li>
-                    <li>Глубокое понимание JavaScript (ES6+)</li>
-                    <li>Опыт работы с Redux/MobX или другими state-менеджерами</li>
-                    <li>Знание TypeScript будет большим плюсом</li>
-                    <li>Опыт работы с REST API и WebSockets</li>
-                    <li>Умение писать чистый, поддерживаемый код</li>
-                    <li>Знание принципов UI/UX и понимание, как превратить дизайн в работающий интерфейс</li>
-                    <li>Опыт работы в команде с использованием Git</li>
-                </ul>
-                
-                <h3 class="section-title">Обязанности</h3>
-                <ul class="duties-list">
-                    <li>Разработка новых пользовательских интерфейсов</li>
-                    <li>Оптимизация производительности существующих интерфейсов</li>
-                    <li>Тесное взаимодействие с дизайнерами и backend-разработчиками</li>
-                    <li>Участие в код-ревью</li>
-                    <li>Написание unit- и интеграционных тестов</li>
-                    <li>Участие в планировании и оценке задач</li>
-                </ul>
-                
-                <h3 class="section-title">Условия</h3>
-                <div class="conditions-list">
-                    <div class="condition-item">
-                        <i class="fas fa-money-bill-wave"></i>
-                        <span>Конкурентная "белая" зарплата</span>
-                    </div>
-                    <div class="condition-item">
-                        <i class="fas fa-medal"></i>
-                        <span>Гибкий график и возможность удалённой работы</span>
-                    </div>
-                    <div class="condition-item">
-                        <i class="fas fa-heart"></i>
-                        <span>ДМС после испытательного срока</span>
-                    </div>
-                    <div class="condition-item">
-                        <i class="fas fa-utensils"></i>
-                        <span>Обеды за счёт компании</span>
-                    </div>
-                    <div class="condition-item">
-                        <i class="fas fa-graduation-cap"></i>
-                        <span>Обучение за счёт компании (конференции, курсы)</span>
-                    </div>
-                    <div class="condition-item">
-                        <i class="fas fa-plane"></i>
-                        <span>Корпоративные мероприятия и тимбилдинги</span>
-                    </div>
+                    <?= nl2br(htmlspecialchars($vacancy['description'])) ?>
                 </div>
             </div>
             
+            <?php if (!empty($similarVacancies)): ?>
             <div class="similar-vacancies">
                 <h3 class="similar-title">Похожие вакансии</h3>
                 <div class="similar-list">
+                    <?php foreach ($similarVacancies as $similar): ?>
                     <div class="similar-item">
-                        <h4>Frontend разработчик (Vue.js)</h4>
-                        <p>ООО "ВебТех" · Москва · Удалённо</p>
-                        <p class="similar-salary">140 000 - 190 000 ₽</p>
-                        <a href="vacancy.php?id=7" class="similar-link">Подробнее →</a>
+                        <h4><?= htmlspecialchars($similar['profession']) ?></h4>
+                        <p><?= htmlspecialchars($similar['location']) ?><?= $similar['remote_available'] ? ' · Удалённо' : '' ?></p>
+                        <p class="similar-salary">
+                            <?= $similar['salary_from'] ? number_format($similar['salary_from'], 0, '', ' ') : '' ?>
+                            <?= $similar['salary_from'] && $similar['salary_to'] ? ' - ' : '' ?>
+                            <?= $similar['salary_to'] ? number_format($similar['salary_to'], 0, '', ' ') : '' ?>
+                            <?= ($similar['salary_from'] || $similar['salary_to']) ? $similar['salary_currency'] : 'Зарплата не указана' ?>
+                        </p>
+                        <a href="vacancy.php?id=<?= $similar['id'] ?>" class="similar-link">Подробнее →</a>
                     </div>
-                    <div class="similar-item">
-                        <h4>JavaScript разработчик</h4>
-                        <p>ООО "ДевелопСофт" · Москва</p>
-                        <p class="similar-salary">160 000 - 200 000 ₽</p>
-                        <a href="vacancy.php?id=8" class="similar-link">Подробнее →</a>
-                    </div>
-                    <div class="similar-item">
-                        <h4>Fullstack разработчик (React + Node.js)</h4>
-                        <p>ИП "ТехноЛаб" · Удалённо</p>
-                        <p class="similar-salary">180 000 - 250 000 ₽</p>
-                        <a href="vacancy.php?id=9" class="similar-link">Подробнее →</a>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
+            <?php endif; ?>
         </section>
     </main>
     
@@ -673,28 +683,15 @@
         <div class="modal-content">
             <span class="close-btn">&times;</span>
             <h2>Отклик на вакансию</h2>
-            <form id="apply-form">
-                <div class="form-group">
-                    <label for="apply-name">Ваше имя</label>
-                    <input type="text" id="apply-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="apply-email">Email</label>
-                    <input type="email" id="apply-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="apply-phone">Телефон</label>
-                    <input type="tel" id="apply-phone" required>
-                </div>
-                <div class="form-group">
-                    <label for="apply-message">Сопроводительное письмо</label>
-                    <textarea id="apply-message" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="apply-resume">Резюме (PDF, DOCX)</label>
-                    <input type="file" id="apply-resume" accept=".pdf,.doc,.docx">
-                </div>
-                <button type="submit" class="submit-btn">Отправить отклик</button>
+            <?php if (isset($error)): ?>
+            <div style="color: red; margin-bottom: 15px;"><?= $error ?></div>
+            <?php endif; ?>
+            <?php if (isset($_GET['applied'])): ?>
+            <div style="color: green; margin-bottom: 15px;">Ваш отклик успешно отправлен!</div>
+            <?php endif; ?>
+            <form id="apply-form" method="POST">
+                <input type="hidden" name="apply" value="1">
+                <button type="submit" class="submit-btn">Подтвердить отклик</button>
             </form>
         </div>
     </div>

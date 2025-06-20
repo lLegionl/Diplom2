@@ -14,10 +14,15 @@
         }
         
         body {
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
             color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: #dde1e6;
+            background-image: radial-gradient(#989ea5 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #333;
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
@@ -115,6 +120,7 @@
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
         }
         
         .search-box input {
@@ -656,6 +662,10 @@
                     <input type="email" id="register-email" required>
                 </div>
                 <div class="form-group">
+                    <label for="register-phone">Телефон</label>
+                    <input type="tel" id="register-phone" placeholder="+7 (___) ___-____">
+                </div>
+                <div class="form-group">
                     <label for="register-password">Пароль</label>
                     <input type="password" id="register-password" required>
                 </div>
@@ -734,39 +744,26 @@
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             
-            // Здесь должна быть проверка данных на сервере
-            // Для демонстрации просто закроем модальное окно и покажем личный кабинет
-            loginModal.style.display = 'none';
-            
-            // Заполняем данные пользователя (в реальном приложении эти данные приходят с сервера)
-            const nameFromEmail = email.split('@')[0];
-            userName.textContent = nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1);
-            userEmail.textContent = email;
-            userAvatar.textContent = nameFromEmail.substring(0, 2).toUpperCase();
-            
-            // Показываем личный кабинет
-            dashboard.style.display = 'block';
-            
-            // Скрываем кнопки входа/регистрации и показываем кнопку выхода
-            document.querySelector('.auth-buttons').innerHTML = `
-                <button class="logout" id="logout-btn">Выйти</button>
-            `;
-            
-            // Обработка выхода
-            document.getElementById('logout-btn').addEventListener('click', () => {
-                dashboard.style.display = 'none';
-                document.querySelector('.auth-buttons').innerHTML = `
-                    <button class="login" id="login-btn">Войти</button>
-                    <button class="register" id="register-btn">Регистрация</button>
-                `;
-                
-                // Перепривязываем события после пересоздания кнопок
-                document.getElementById('login-btn').addEventListener('click', () => {
-                    loginModal.style.display = 'flex';
-                });
-                document.getElementById('register-btn').addEventListener('click', () => {
-                    registerModal.style.display = 'flex';
-                });
+            fetch('auth.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=login&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loginModal.style.display = 'none';
+                    updateUserProfile(data.data);
+                    showDashboard();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при авторизации');
             });
         });
         

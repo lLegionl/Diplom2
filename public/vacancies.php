@@ -1,3 +1,13 @@
+<?php
+require_once 'db.php';
+include 'config.php';
+
+requireLogin();
+
+// Получаем все вакансии из базы данных
+$stmt = $pdo->query("SELECT * FROM job ORDER BY created_at DESC");
+$vacancies = $stmt->fetchAll(PDO::FETCH_ASSOC);
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -14,10 +24,15 @@
         }
         
         body {
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
             color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: #dde1e6;
+            background-image: radial-gradient(#989ea5 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #333;
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
@@ -118,6 +133,7 @@
             padding: 20px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
         }
         
         .search-box input {
@@ -455,119 +471,28 @@
             </div>
             
             <div class="vacancies-list">
-                <!-- Вакансия 1 -->
+                <?php foreach ($vacancies as $vacancy): ?>
                 <div class="vacancy-card">
-                    <h3 class="vacancy-title">Frontend разработчик (React)</h3>
-                    <p class="vacancy-company">ООО "Технологии будущего"</p>
+                    <h3 class="vacancy-title"><?= htmlspecialchars($vacancy['profession']) ?></h3>
                     <div class="vacancy-location">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span>Москва · Удалённо</span>
+                        <span><?= htmlspecialchars($vacancy['location']) ?><?= $vacancy['remote_available'] ? ' · Удалённо' : '' ?></span>
                     </div>
-                    <p class="vacancy-salary">150 000 - 220 000 ₽</p>
+                    <p class="vacancy-salary">
+                        <?= $vacancy['salary_from'] ? number_format($vacancy['salary_from'], 0, '', ' ') : '' ?>
+                        <?= $vacancy['salary_from'] && $vacancy['salary_to'] ? ' - ' : '' ?>
+                        <?= $vacancy['salary_to'] ? number_format($vacancy['salary_to'], 0, '', ' ') : '' ?>
+                        <?= ($vacancy['salary_from'] || $vacancy['salary_to']) ? $vacancy['salary_currency'] : 'Зарплата не указана' ?>
+                    </p>
                     <p class="vacancy-description">
-                        Мы ищем опытного Frontend разработчика с глубокими знаниями React.js для работы над нашим флагманским продуктом. 
-                        Вам предстоит разрабатывать новые функции, оптимизировать производительность и работать в тесной связке с UX/UI дизайнерами.
+                        <?= mb_substr(htmlspecialchars($vacancy['description']), 0, 200) ?>...
                     </p>
                     <div class="vacancy-meta">
-                        <span class="vacancy-date">Опубликовано 2 дня назад</span>
-                        <button class="details-btn" onclick="location.href='vacancy.php?id=1'">Подробнее</button>
+                        <span class="vacancy-date">Опубликовано <?= date('d.m.Y', strtotime($vacancy['created_at'])) ?></span>
+                        <button class="details-btn" onclick="location.href='vacancy.php?id=<?= $vacancy['id'] ?>'">Подробнее</button>
                     </div>
                 </div>
-                
-                <!-- Вакансия 2 -->
-                <div class="vacancy-card">
-                    <h3 class="vacancy-title">Менеджер по продажам</h3>
-                    <p class="vacancy-company">ПАО "Сбербанк"</p>
-                    <div class="vacancy-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Санкт-Петербург</span>
-                    </div>
-                    <p class="vacancy-salary">90 000 - 120 000 ₽ + бонусы</p>
-                    <p class="vacancy-description">
-                        Крупный банк приглашает на работу менеджера по продажам банковских продуктов. 
-                        Обучение, поддержка коллег, готовые клиенты. Карьерный рост до руководителя отдела продаж.
-                    </p>
-                    <div class="vacancy-meta">
-                        <span class="vacancy-date">Опубликовано 5 дней назад</span>
-                        <button class="details-btn" onclick="location.href='vacancy.php?id=2'">Подробнее</button>
-                    </div>
-                </div>
-                
-                <!-- Вакансия 3 -->
-                <div class="vacancy-card">
-                    <h3 class="vacancy-title">UX/UI дизайнер</h3>
-                    <p class="vacancy-company">Яндекс</p>
-                    <div class="vacancy-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Москва · Удалённо</span>
-                    </div>
-                    <p class="vacancy-salary">140 000 - 180 000 ₽</p>
-                    <p class="vacancy-description">
-                        В команду разработки интерфейсов Яндекса требуется UX/UI дизайнер с опытом работы от 2 лет. 
-                        Предстоит работать над созданием удобных и красивых интерфейсов для миллионов пользователей.
-                    </p>
-                    <div class="vacancy-meta">
-                        <span class="vacancy-date">Опубликовано 1 неделю назад</span>
-                        <button class="details-btn" onclick="location.href='vacancy.php?id=3'">Подробнее</button>
-                    </div>
-                </div>
-                
-                <!-- Вакансия 4 -->
-                <div class="vacancy-card">
-                    <h3 class="vacancy-title">Аналитик данных</h3>
-                    <p class="vacancy-company">Тинькофф</p>
-                    <div class="vacancy-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Москва</span>
-                    </div>
-                    <p class="vacancy-salary">170 000 - 230 000 ₽</p>
-                    <p class="vacancy-description">
-                        В команду аналитики Тинькофф требуется специалист с опытом работы с большими данными. 
-                        SQL, Python, построение дашбордов, анализ эффективности бизнес-процессов.
-                    </p>
-                    <div class="vacancy-meta">
-                        <span class="vacancy-date">Опубликовано 3 дня назад</span>
-                        <button class="details-btn" onclick="location.href='vacancy.php?id=4'">Подробнее</button>
-                    </div>
-                </div>
-                
-                <!-- Вакансия 5 -->
-                <div class="vacancy-card">
-                    <h3 class="vacancy-title">Маркетолог</h3>
-                    <p class="vacancy-company">ООО "МаркетПром"</p>
-                    <div class="vacancy-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Москва</span>
-                    </div>
-                    <p class="vacancy-salary">110 000 - 150 000 ₽</p>
-                    <p class="vacancy-description">
-                        В маркетинговое агентство требуется специалист по digital-маркетингу. 
-                        Разработка и реализация маркетинговых стратегий, ведение рекламных кампаний, аналитика.
-                    </p>
-                    <div class="vacancy-meta">
-                        <span class="vacancy-date">Опубликовано 1 день назад</span>
-                        <button class="details-btn" onclick="location.href='vacancy.php?id=5'">Подробнее</button>
-                    </div>
-                </div>
-                
-                <!-- Вакансия 6 -->
-                <div class="vacancy-card">
-                    <h3 class="vacancy-title">Backend разработчик (Python)</h3>
-                    <p class="vacancy-company">ООО "ТехноСофт"</p>
-                    <div class="vacancy-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Новосибирск · Удалённо</span>
-                    </div>
-                    <p class="vacancy-salary">130 000 - 190 000 ₽</p>
-                    <p class="vacancy-description">
-                        Разработка backend-части веб-приложений на Python (Django/Flask). 
-                        Оптимизация производительности, работа с базами данных, интеграция с внешними API.
-                    </p>
-                    <div class="vacancy-meta">
-                        <span class="vacancy-date">Опубликовано 4 дня назад</span>
-                        <button class="details-btn" onclick="location.href='vacancy.php?id=6'">Подробнее</button>
-                    </div>
-                </div>
+                <?php endforeach; ?>
             </div>
         </section>
     </main>
