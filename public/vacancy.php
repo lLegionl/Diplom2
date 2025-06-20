@@ -1,6 +1,7 @@
 <?php
+// vacancy.php
 require_once 'db.php';
-include 'config.php';
+require_once 'config.php';
 
 requireLogin();
 
@@ -10,48 +11,61 @@ if (!isset($_GET['id'])) {
 }
 
 $vacancyId = (int)$_GET['id'];
+$userId = $_SESSION['user_id'];
+$error = '';
+$success = false;
 
 // Получаем данные о вакансии
-$stmt = $pdo->prepare("SELECT * FROM job WHERE id = :id");
-$stmt->execute(['id' => $vacancyId]);
-$vacancy = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->prepare("SELECT * FROM job WHERE id = ?");
+    $stmt->execute([$vacancyId]);
+    $vacancy = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$vacancy) {
-    header('Location: vacancies.php');
-    exit();
+    if (!$vacancy) {
+        header('Location: vacancies.php');
+        exit();
+    }
+} catch (PDOException $e) {
+    die("Ошибка при получении данных вакансии: " . $e->getMessage());
 }
 
-// Получаем похожие вакансии
-$stmt = $pdo->prepare("SELECT * FROM job WHERE id != :id ORDER BY RAND() LIMIT 3");
-$stmt->execute(['id' => $vacancyId]);
-$similarVacancies = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Проверяем, отправлял ли уже пользователь отклик
+try {
+    $checkStmt = $pdo->prepare("SELECT id FROM response WHERE id_user = ? AND id_job = ?");
+    $checkStmt->execute([$userId, $vacancyId]);
+    $alreadyApplied = $checkStmt->fetch();
+} catch (PDOException $e) {
+    $error = "Ошибка при проверке отклика: " . $e->getMessage();
+}
 
 // Обработка формы отклика
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply'])) {
-    session_start();
-    if (!isset($_SESSION['user_id'])) {
-        header('Location: login.php?redirect=' . urlencode($_SERVER['REQUEST_URI']));
-        exit();
+    if ($alreadyApplied) {
+        $error = "Вы уже откликались на эту вакансию";
+    } else {
+        try {
+            $stmt = $pdo->prepare("INSERT INTO response (id_user, id_job, status) VALUES (?, ?, 'Отклик')");
+            $stmt->execute([$userId, $vacancyId]);
+            $success = true;
+            $alreadyApplied = true; // Обновляем состояние после успешного отклика
+            
+            // Записываем в лог
+            error_log("User $userId applied to job $vacancyId at " . date('Y-m-d H:i:s'));
+        } catch (PDOException $e) {
+            $error = "Ошибка при отправке отклика: " . $e->getMessage();
+            error_log("Error applying to job: " . $e->getMessage());
+        }
     }
-    
-    $userId = $_SESSION['user_id'];
-    $jobId = $vacancyId;
-    
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO response (id_user, id_job, status, date_response)
-            VALUES (:user_id, :job_id, 1, 'Отклик')
-        ");
-        $stmt->execute([
-            'user_id' => $userId,
-            'job_id' => $jobId
-        ]);
-        
-        header('Location: vacancy.php?id=' . $jobId . '&applied=1');
-        exit();
-    } catch (PDOException $e) {
-        $error = "Ошибка при отправке отклика: " . $e->getMessage();
-    }
+}
+
+// Получаем похожие вакансии
+try {
+    $stmt = $pdo->prepare("SELECT * FROM job WHERE id != ? ORDER BY RAND() LIMIT 3");
+    $stmt->execute([$vacancyId]);
+    $similarVacancies = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $similarVacancies = [];
+    $error = "Ошибка при получении похожих вакансий: " . $e->getMessage();
 }
 ?>
 <!DOCTYPE html>
@@ -59,12 +73,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frontend разработчик (React) | JobFinder</title>
+    <title><?= htmlspecialchars($vacancy['profession']) ?> | JobFinder</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="<?=URL_ROOT . '/css/vacancy.css'?>">
+    <style>
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .alert-success {
+            color: #3c763d;
+            background-color: #dff0d8;
+            border-color: #d6e9c6;
+        }
+        .alert-danger {
+            color: #a94442;
+            background-color: #f2dede;
+            border-color: #ebccd1;
+        }
+        .apply-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .apply-btn:hover {
+            background-color: #45a049;
+        }
+        .apply-btn.applied {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
-    <?php include 'includes/header.php';?>
+    <?php include 'includes/header.php'; ?>
+    
     <main>
         <section class="vacancy-container">
             <div class="vacancy-header">
@@ -79,10 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply'])) {
                         <i class="fas fa-briefcase"></i>
                         <span><?= htmlspecialchars($vacancy['experience']) ?></span>
                     </div>
-                    <div class="meta-item">
-                        <i class="fas fa-clock"></i>
-                        <span><?= htmlspecialchars($vacancy['employment_type']) ?></span>
-                    </div>
                 </div>
                 
                 <p class="vacancy-salary">
@@ -92,7 +137,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply'])) {
                     <?= ($vacancy['salary_from'] || $vacancy['salary_to']) ? $vacancy['salary_currency'] : 'Зарплата не указана' ?>
                 </p>
                 
-                <button class="apply-btn" id="apply-btn">Откликнуться</button>
+                <?php if (!$alreadyApplied): ?>
+                    <button class="apply-btn" id="apply-btn">Откликнуться</button>
+                <?php else: ?>
+                    <button class="apply-btn applied" disabled>Вы уже откликнулись</button>
+                <?php endif; ?>
             </div>
             
             <div class="vacancy-content">
@@ -101,237 +150,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply'])) {
                     <?= nl2br(htmlspecialchars($vacancy['description'])) ?>
                 </div>
             </div>
-            
-            <?php if (!empty($similarVacancies)): ?>
-            <div class="similar-vacancies">
-                <h3 class="similar-title">Похожие вакансии</h3>
-                <div class="similar-list">
-                    <?php foreach ($similarVacancies as $similar): ?>
-                    <div class="similar-item">
-                        <h4><?= htmlspecialchars($similar['profession']) ?></h4>
-                        <p><?= htmlspecialchars($similar['location']) ?><?= $similar['remote_available'] ? ' · Удалённо' : '' ?></p>
-                        <p class="similar-salary">
-                            <?= $similar['salary_from'] ? number_format($similar['salary_from'], 0, '', ' ') : '' ?>
-                            <?= $similar['salary_from'] && $similar['salary_to'] ? ' - ' : '' ?>
-                            <?= $similar['salary_to'] ? number_format($similar['salary_to'], 0, '', ' ') : '' ?>
-                            <?= ($similar['salary_from'] || $similar['salary_to']) ? $similar['salary_currency'] : 'Зарплата не указана' ?>
-                        </p>
-                        <a href="vacancy.php?id=<?= $similar['id'] ?>" class="similar-link">Подробнее →</a>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endif; ?>
         </section>
     </main>
-    
-    
-    <?php include 'includes/footer.php'; ?>
-        
-    
-    <!-- Модальное окно входа -->
-    <div class="modal" id="login-modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Вход в аккаунт</h2>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="login-email">Email</label>
-                    <input type="email" id="login-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="login-password">Пароль</label>
-                    <input type="password" id="login-password" required>
-                </div>
-                <button type="submit" class="submit-btn">Войти</button>
-                <div class="form-footer">
-                    Нет аккаунта? <a href="#" id="show-register">Зарегистрироваться</a>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Модальное окно регистрации -->
-    <div class="modal" id="register-modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Регистрация</h2>
-            <form id="register-form">
-                <div class="form-group">
-                    <label for="register-name">Имя</label>
-                    <input type="text" id="register-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-email">Email</label>
-                    <input type="email" id="register-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-password">Пароль</label>
-                    <input type="password" id="register-password" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-confirm">Подтвердите пароль</label>
-                    <input type="password" id="register-confirm" required>
-                </div>
-                <button type="submit" class="submit-btn">Зарегистрироваться</button>
-                <div class="form-footer">
-                    Уже есть аккаунт? <a href="#" id="show-login">Войти</a>
-                </div>
-            </form>
-        </div>
-    </div>
-    
+
     <!-- Модальное окно отклика -->
-    <div class="modal" id="apply-modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
+    <div class="modal" id="apply-modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-content" style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+            <span class="close-btn" style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
             <h2>Отклик на вакансию</h2>
-            <?php if (!empty($errorMessage)): ?>
-                <div class="alert alert-danger"><?= htmlspecialchars($errorMessage) ?></div>
-            <?php endif; ?>
-            <?php if (!empty($successMessage)): ?>
-                <div class="alert alert-success"><?= htmlspecialchars($successMessage) ?></div>
-            <?php endif; ?>
-            <form id="apply-form" method="POST">
-                <input type="hidden" name="apply" value="1">
-                <div class="form-group">
-                    <label>Вакансия: <?= htmlspecialchars($vacancy['profession']) ?></label>
+            
+            <?php if ($success): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    Ваш отклик успешно отправлен!
                 </div>
-                <div class="form-group">
-                    <label>Компания: <?= htmlspecialchars($vacancy['company_id']) ?></label>
-                </div>
-                <button type="submit" class="submit-btn">Подтвердить отклик</button>
-            </form>
+                <script>
+                    setTimeout(() => {
+                        document.getElementById('apply-modal').style.display = 'none';
+                        window.location.reload(); // Обновляем страницу для обновления состояния кнопки
+                    }, 2000);
+                </script>
+            <?php else: ?>
+                <?php if ($error): ?>
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <?= htmlspecialchars($error) ?>
+                    </div>
+                <?php endif; ?>
+                
+                <form method="POST" id="apply-form">
+                    <input type="hidden" name="apply" value="1">
+                    
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Вакансия:</label>
+                        <p style="margin: 0; padding: 8px; background: #f5f5f5; border-radius: 4px;">
+                            <?= htmlspecialchars($vacancy['profession']) ?>
+                        </p>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-paper-plane"></i> Подтвердить отклик
+                    </button>
+                </form>
+            <?php endif; ?>
         </div>
-    </div>    
+    </div>
+
     <script>
         // Элементы DOM
-        const loginBtn = document.getElementById('login-btn');
-        const registerBtn = document.getElementById('register-btn');
         const applyBtn = document.getElementById('apply-btn');
-        const loginModal = document.getElementById('login-modal');
-        const registerModal = document.getElementById('register-modal');
         const applyModal = document.getElementById('apply-modal');
-        const closeBtns = document.querySelectorAll('.close-btn');
-        const showRegister = document.getElementById('show-register');
-        const showLogin = document.getElementById('show-login');
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-        const applyForm = document.getElementById('apply-form');
-        
-        // Показать модальное окно входа
-        loginBtn.addEventListener('click', () => {
-            loginModal.style.display = 'flex';
-        });
-        
-        // Показать модальное окно регистрации
-        registerBtn.addEventListener('click', () => {
-            registerModal.style.display = 'flex';
-        });
+        const closeBtn = document.querySelector('#apply-modal .close-btn');
         
         // Показать модальное окно отклика
-        applyBtn.addEventListener('click', () => {
-            applyModal.style.display = 'flex';
-        });
+        if (applyBtn) {
+            applyBtn.addEventListener('click', () => {
+                applyModal.style.display = 'block';
+            });
+        }
         
-        // Переключение между окнами входа и регистрации
-        showRegister.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginModal.style.display = 'none';
-            registerModal.style.display = 'flex';
-        });
-        
-        showLogin.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerModal.style.display = 'none';
-            loginModal.style.display = 'flex';
-        });
-        
-        // Закрытие модальных окон
-        closeBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                loginModal.style.display = 'none';
-                registerModal.style.display = 'none';
+        // Закрытие модального окна
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
                 applyModal.style.display = 'none';
             });
-        });
+        }
         
         // Закрытие при клике вне окна
         window.addEventListener('click', (e) => {
-            if (e.target === loginModal) {
-                loginModal.style.display = 'none';
-            }
-            if (e.target === registerModal) {
-                registerModal.style.display = 'none';
-            }
             if (e.target === applyModal) {
                 applyModal.style.display = 'none';
             }
         });
-        
-        // Обработка формы входа
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            
-            // Здесь должна быть проверка данных на сервере
-            loginModal.style.display = 'none';
-            alert('Вход выполнен успешно! Теперь вы можете откликнуться на вакансию.');
-        });
-        
-        // Обработка формы регистрации
-        registerForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('register-name').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const confirm = document.getElementById('register-confirm').value;
-            
-            if (password !== confirm) {
-                alert('Пароли не совпадают!');
-                return;
-            }
-            
-            // Здесь должна быть отправка данных на сервер
-            registerModal.style.display = 'none';
-            alert('Регистрация прошла успешно! Теперь вы можете откликнуться на вакансию.');
-        });
-        
-        // Обработка формы отклика
-        applyForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('apply-name').value;
-            const email = document.getElementById('apply-email').value;
-            const phone = document.getElementById('apply-phone').value;
-            const message = document.getElementById('apply-message').value;
-            
-            // Здесь должна быть отправка данных на сервер
-            applyModal.style.display = 'none';
-            alert('Ваш отклик успешно отправлен! Работодатель свяжется с вами в ближайшее время.');
-            
-            // В реальном приложении здесь нужно добавить запрос к серверу для сохранения отклика
-            // и обновления списка откликов в личном кабинете
-        });
-        
-        // Обработчики для навигации
-        document.getElementById('about-link').addEventListener('click', (e) => {
-            e.preventDefault();
-            alert('Раздел "О нас" в разработке');
-        });
-        
-        document.getElementById('contacts-link').addEventListener('click', (e) => {
-            e.preventDefault();
-            alert('Раздел "Контакты" в разработке');
-        });
-        
-        // Получение ID вакансии из URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const vacancyId = urlParams.get('id');
-        
-        // В реальном приложении здесь должен быть запрос к серверу
-        // для получения данных о конкретной вакансии по её ID
-        console.log('Загрузка данных вакансии с ID:', vacancyId);
     </script>
+    
+    <?php include 'includes/footer.php'; ?>
 </body>
 </html>
