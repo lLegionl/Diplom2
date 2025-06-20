@@ -34,5 +34,4 @@ function currentUser() {
     }
     return null;
 }
-
 ?>
