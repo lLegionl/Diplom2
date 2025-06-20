@@ -93,11 +93,10 @@
                     <a href="#"><i class="fab fa-vk"></i></a>
                     <a href="#"><i class="fab fa-telegram"></i></a>
                     <a href="#"><i class="fab fa-whatsapp"></i></a>
-                    <a href="#"><i class="fab fa-instagram"></i></a>
                 </div>
             </div>
         </div>
         <div class="copyright">
-            <p>&copy; 2023 JobFinder. Все права защищены.</p>
+            <p>&copy; 2025 JobFinder. Все права защищены.</p>
         </div>
     </footer>

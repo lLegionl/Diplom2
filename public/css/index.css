@@ -486,7 +486,149 @@
             color: #23d5ab;
             font-weight: bold;
         }
-        
+        /* Add these styles to your existing index.css file */
+
+        /* About Section */
+        .about-section {
+            padding: 80px 5%;
+            background: white;
+            margin: 50px 0;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .about-section h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 40px;
+            color: #23a6d5;
+        }
+
+        .about-content {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .about-text {
+            flex: 1;
+        }
+
+        .about-text p {
+            margin-bottom: 20px;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .about-image {
+            flex: 1;
+        }
+
+        .about-image img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Contacts Section */
+        .contacts-section {
+            padding: 80px 5%;
+            background: #f8f9fa;
+            margin: 50px 0;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .contacts-section h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 40px;
+            color: #23a6d5;
+        }
+
+        .contacts-content {
+            display: flex;
+            gap: 40px;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-map {
+            flex: 1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-item i {
+            font-size: 20px;
+            color: #23a6d5;
+            margin-right: 15px;
+            width: 30px;
+            text-align: center;
+        }
+
+        .contact-item p {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        /* Vacancies Button */
+        .vacancies-button {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .vacancies-button button {
+            padding: 15px 40px;
+            background: #23a6d5;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .vacancies-button button:hover {
+            background: #1e8ab8;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .about-content,
+            .contacts-content {
+                flex-direction: column;
+            }
+            
+            .about-image {
+                margin-top: 30px;
+            }
+            
+            .contact-map {
+                margin-top: 30px;
+            }
+            
+            .vacancies-button button {
+                width: 100%;
+                padding: 15px;
+            }
+        }
         /* Адаптивность */
         @media (max-width: 768px) {
             header {

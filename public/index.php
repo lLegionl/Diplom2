@@ -19,9 +19,8 @@ include 'auth.php';
     <main>
         <section class="hero">
             <h1>Работа найдётся для каждого</h1>
-            <div class="search-box">
-                <input type="text" placeholder="Профессия, должность или компания">
-                <button>Найти</button>
+            <div class="vacancies-button">
+                <button onclick="window.location.href='vacancies.php'">Смотреть все вакансии</button>
             </div>
             <div class="categories">
                 <div class="category">Высокооплачиваемая работа</div>
@@ -46,10 +45,47 @@ include 'auth.php';
             </div>
         </div>
         
-        <div class="phone-input">
-            <h3>Напишите телефон, чтобы работодатели могли предложить вам работу</h3>
-            <input type="tel" placeholder="+7 (___) ___-____">
-        </div>
+        <section class="about-section" id="about">
+            <h2>О нас</h2>
+            <div class="about-content">
+                <div class="about-text">
+                    <p>Мы - ведущая платформа по поиску работы и персонала в России. Наша миссия - помогать людям находить работу своей мечты, а компаниям - идеальных сотрудников.</p>
+                    <p>С 2010 года мы помогли более чем 5 миллионам человек найти подходящую работу и более чем 200 тысячам компаний - ценных специалистов.</p>
+                    <p>Наша платформа использует современные технологии подбора, чтобы максимально точно соединять соискателей и работодателей.</p>
+                </div>
+                <div class="about-image">
+                    <img src="./images/team.png" alt="Наша команда">
+                </div>
+            </div>
+        </section>
+        
+        <section class="contacts-section" id="contacts">
+            <h2>Контакты</h2>
+            <div class="contacts-content">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <p>Москва, ул. Тверская, д. 10, офис 305</p>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <p>+7 (495) 123-45-67</p>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <p>info@jobplatform.ru</p>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-clock"></i>
+                        <p>Пн-Пт: 9:00 - 18:00</p>
+                    </div>
+                </div>
+                <div class="contact-map">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2245.373786089576!2d37.60880831593095!3d55.755819980553576!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46b54a5a738fa419%3A0x7c347d506f52311f!2z0KLQstC10YDQtNC70Y_QvdC60LA!5e0!3m2!1sru!2sru!4v1620000000000!5m2!1sru!2sru" width="100%" height="300" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                </div>
+            </div>
+        </section>
+        
     </main>
     
     <?php include 'includes/footer.php'; ?>
@@ -305,17 +341,6 @@ include 'auth.php';
                 window.location.reload();
                 console.error('Error:', error);
             });
-        });
-        
-        // Обработчики для навигации
-        document.getElementById('about-link').addEventListener('click', (e) => {
-            e.preventDefault();
-            alert('Раздел "О нас" в разработке');
-        });
-        
-        document.getElementById('contacts-link').addEventListener('click', (e) => {
-            e.preventDefault();
-            alert('Раздел "Контакты" в разработке');
         });
     </script>
 </body>

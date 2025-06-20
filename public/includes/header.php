@@ -44,8 +44,8 @@
             <ul>
                 <li><a href="index.php">Главная</a></li>
                 <li><a href="vacancies.php" class="active">Вакансии</a></li>
-                <li><a href="#" id="about-link">О нас</a></li>
-                <li><a href="#" id="contacts-link">Контакты</a></li>
+                <li><a href="index.php#about" id="about-link">О нас</a></li>
+                <li><a href="index.php#contacts" id="contacts-link">Контакты</a></li>
             </ul>
         </nav>
         <div class="auth-section">
